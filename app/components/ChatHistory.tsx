@@ -1,11 +1,20 @@
 import React from 'react';
 
+interface Message {
+  id: number;
+  text: string;
+  isSent: boolean;
+  isLoading?: boolean;
+  image?: { url: string };
+  status?: 'sent' | 'delivered' | 'seen';
+}
+
 interface ChatSession {
   id: string;
   title: string;
   timestamp: Date;
   preview: string;
-  messages: any[];
+  messages: Message[];
 }
 
 interface ChatHistoryProps {

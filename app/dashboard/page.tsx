@@ -9,6 +9,7 @@ import rehypeKatex from 'rehype-katex';
 import rehypePrism from 'rehype-prism-plus';
 import ChatHistory from '../components/ChatHistory';
 import FileAttachment from '../components/FileAttachment';
+import Image from 'next/image';
 
 interface Message {
   id: number;
@@ -302,15 +303,17 @@ export default function Dashboard() {
     return questions.slice(0, 2); // Return max 2 questions
   };
 
-  const generateErrorMessage = (error: any): string => {
+  const generateErrorMessage = (error: Error | unknown): string => {
     const errorMessages = {
       NetworkError: "I'm having trouble connecting to the server. Please check your internet connection and try again.",
       TimeoutError: "The request took too long to process. Please try again with a simpler question.",
       default: "I encountered an unexpected error. Could you please rephrase your question?"
     };
 
-    const errorType = error?.name || 'default';
-    return errorMessages[errorType as keyof typeof errorMessages] || errorMessages.default;
+    if (error instanceof Error) {
+      return errorMessages[error.name as keyof typeof errorMessages] || errorMessages.default;
+    }
+    return errorMessages.default;
   };
 
   // Add helper function to detect content type
@@ -506,9 +509,11 @@ export default function Dashboard() {
                   >
                     {message.image && (
                       <div className="mb-3 rounded-lg overflow-hidden shadow-md max-w-[300px]">
-                        <img 
+                        <Image 
                           src={message.image.url} 
                           alt="Uploaded content"
+                          width={300}
+                          height={300}
                           className="w-full h-auto hover:opacity-95 transition-opacity object-contain"
                         />
                       </div>
@@ -611,9 +616,11 @@ export default function Dashboard() {
               
               {stagedImage && (
                 <div className="mb-3 relative group">
-                  <img 
+                  <Image 
                     src={stagedImage.url} 
                     alt="Staged upload" 
+                    width={128}
+                    height={128}
                     className="w-32 h-32 object-cover rounded-lg border border-gray-700 shadow-md transition-transform hover:scale-105"
                   />
                   <button

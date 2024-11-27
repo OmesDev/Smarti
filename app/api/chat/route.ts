@@ -5,12 +5,21 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
+interface ChatMessage {
+  isSent: boolean;
+  text: string;
+  image?: {
+    url: string;
+    detail?: string;
+  };
+}
+
 export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
     
     const completion = await openai.chat.completions.create({
-      messages: messages.map((msg: any) => ({
+      messages: messages.map((msg: ChatMessage) => ({
         role: msg.isSent ? 'user' : 'assistant',
         content: msg.image ? [
           { type: "text", text: msg.text },
