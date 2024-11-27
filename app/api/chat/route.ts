@@ -1,9 +1,10 @@
 import OpenAI from 'openai';
 import { NextResponse } from 'next/server';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+// Check for API key and create OpenAI client only if key exists
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
 
 interface ChatMessage {
   isSent: boolean;
@@ -16,6 +17,14 @@ interface ChatMessage {
 
 export async function POST(req: Request) {
   try {
+    // Check if OpenAI client is available
+    if (!openai) {
+      return NextResponse.json(
+        { error: 'OpenAI API key not configured' },
+        { status: 501 }
+      );
+    }
+
     const { messages } = await req.json();
     
     const completion = await openai.chat.completions.create({
