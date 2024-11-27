@@ -10,16 +10,20 @@ import rehypePrism from 'rehype-prism-plus';
 import ChatHistory from '../components/ChatHistory';
 import FileAttachment from '../components/FileAttachment';
 import { supabase } from '../lib/supabase';
-import { useRouter } from 'next/navigation';
 import AuthModal from '../components/AuthModal';
 import UserProfile from '../components/UserProfile';
+import { User } from '@supabase/supabase-js';
+import Image from 'next/image';
 
 interface Message {
   id: number;
   text: string;
   isSent: boolean;
   isLoading?: boolean;
-  image?: { url: string };
+  image?: {
+    url: string;
+    detail?: "low" | "high" | "auto";
+  };
   file?: {
     name: string;
     type: string;
@@ -86,8 +90,7 @@ export default function Dashboard() {
     size: number;
     url: string;
   } | null>(null);
-  const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const scrollToBottom = useCallback(() => {
@@ -514,7 +517,7 @@ export default function Dashboard() {
                     <span className="text-xs">Online</span>
                   </div>
                 </div>
-                <UserProfile user={user} />
+                {user && <UserProfile user={user} />}
               </div>
             </div>
 
@@ -541,9 +544,11 @@ export default function Dashboard() {
                   >
                     {message.image && (
                       <div className="mb-3 rounded-lg overflow-hidden shadow-md max-w-[300px]">
-                        <img 
+                        <Image 
                           src={message.image.url} 
                           alt="Uploaded content"
+                          width={300}
+                          height={300}
                           className="w-full h-auto hover:opacity-95 transition-opacity object-contain"
                         />
                       </div>
@@ -646,9 +651,11 @@ export default function Dashboard() {
               
               {stagedImage && (
                 <div className="mb-3 relative group">
-                  <img 
+                  <Image 
                     src={stagedImage.url} 
                     alt="Staged upload" 
+                    width={300}
+                    height={300}
                     className="w-32 h-32 object-cover rounded-lg border border-gray-700 shadow-md transition-transform hover:scale-105"
                   />
                   <button

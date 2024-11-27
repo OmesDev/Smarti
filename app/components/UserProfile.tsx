@@ -3,9 +3,10 @@ import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { User } from '@supabase/supabase-js';
 
 interface UserProfileProps {
-  user: any;
+  user: User;
 }
 
 export default function UserProfile({ user }: UserProfileProps) {
