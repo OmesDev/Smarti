@@ -19,7 +19,7 @@ interface ChatSession {
 
 interface ChatHistoryProps {
   sessions: ChatSession[];
-  currentSessionId: string;
+  currentSessionId: string | null;
   onSelectSession: (id: string) => void;
   onNewChat: () => void;
   onDeleteSession: (id: string) => void;
@@ -32,6 +32,30 @@ export default function ChatHistory({
   onNewChat,
   onDeleteSession
 }: ChatHistoryProps) {
+  // Helper function to format the date
+  const formatDateTime = (date: Date) => {
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    // If it's today, show only time
+    if (date.toDateString() === now.toDateString()) {
+      return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    // If it's yesterday, show "Yesterday"
+    else if (date.toDateString() === yesterday.toDateString()) {
+      return `Yesterday at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    // Otherwise show date and time
+    return `${date.toLocaleDateString([], { 
+      month: 'short', 
+      day: 'numeric' 
+    })} at ${date.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit'
+    })}`;
+  };
+
   return (
     <div className="w-[280px] h-full bg-gray-900/80 border-r border-gray-800 flex flex-col">
       <div className="p-3">
@@ -60,8 +84,8 @@ export default function ChatHistory({
               }`}>
                 {session.title}
               </div>
-              <div className="text-xs text-gray-400 truncate mt-0.5">
-                {session.preview}
+              <div className="text-xs text-gray-400 mt-0.5">
+                {formatDateTime(session.timestamp)}
               </div>
             </div>
 

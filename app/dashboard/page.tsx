@@ -9,7 +9,10 @@ import rehypeKatex from 'rehype-katex';
 import rehypePrism from 'rehype-prism-plus';
 import ChatHistory from '../components/ChatHistory';
 import FileAttachment from '../components/FileAttachment';
-import Image from 'next/image';
+import { supabase } from '../lib/supabase';
+import { useRouter } from 'next/navigation';
+import AuthModal from '../components/AuthModal';
+import UserProfile from '../components/UserProfile';
 
 interface Message {
   id: number;
@@ -83,6 +86,9 @@ export default function Dashboard() {
     size: number;
     url: string;
   } | null>(null);
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
@@ -303,17 +309,15 @@ export default function Dashboard() {
     return questions.slice(0, 2); // Return max 2 questions
   };
 
-  const generateErrorMessage = (error: Error | unknown): string => {
+  const generateErrorMessage = (error: any): string => {
     const errorMessages = {
       NetworkError: "I'm having trouble connecting to the server. Please check your internet connection and try again.",
       TimeoutError: "The request took too long to process. Please try again with a simpler question.",
       default: "I encountered an unexpected error. Could you please rephrase your question?"
     };
 
-    if (error instanceof Error) {
-      return errorMessages[error.name as keyof typeof errorMessages] || errorMessages.default;
-    }
-    return errorMessages.default;
+    const errorType = error?.name || 'default';
+    return errorMessages[errorType as keyof typeof errorMessages] || errorMessages.default;
   };
 
   // Add helper function to detect content type
@@ -343,6 +347,11 @@ export default function Dashboard() {
   };
 
   const handleSend = async () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+
     if ((newMessage.trim() || stagedImage || stagedFile) && !isLoading) {
       const userMessage = newMessage.trim();
       setNewMessage("");
@@ -370,7 +379,7 @@ export default function Dashboard() {
         setStagedFile(null);
 
         // Update session title if this is the first user message
-        if (messages.length === 1) { // Only the initial AI message exists
+        if (messages.length === 1) {
           setSessions(prev => prev.map(session => 
             session.id === currentSessionId
               ? {
@@ -448,8 +457,30 @@ export default function Dashboard() {
     }
   }, [sessions, currentSessionId]);
 
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    
+    getUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        setShowAuthModal(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-black via-blue-950/30 to-gray-950 p-1 sm:p-2">
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+      />
       <div className="w-full max-w-[1200px] h-[98vh] sm:h-[92vh] bg-gray-900/80 backdrop-blur-sm rounded-xl sm:rounded-3xl shadow-2xl flex flex-col border border-blue-900/30">
         <div className="flex-1 flex overflow-hidden rounded-xl sm:rounded-3xl">
           {/* ChatHistory with responsive visibility */}
@@ -465,7 +496,7 @@ export default function Dashboard() {
           
           <div className="flex-1 flex flex-col">
             {/* Enhanced Header with responsive padding */}
-            <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm rounded-t-xl sm:rounded-t-3xl">
+            <div className="relative z-50 px-3 sm:px-6 py-3 sm:py-4 border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm rounded-t-xl sm:rounded-t-3xl">
               <div className="flex items-center justify-between gap-3">
                 {/* Mobile menu button - only show on mobile */}
                 <button className="md:hidden p-2 hover:bg-blue-500/10 rounded-lg transition-colors">
@@ -474,20 +505,21 @@ export default function Dashboard() {
                   </svg>
                 </button>
                 
-                <div className="flex items-center gap-3">
+                <div className="flex-1 flex items-center gap-2">
                   <h1 className="text-lg sm:text-xl font-semibold text-blue-100">
                     Smarti AI
                   </h1>
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500" />
+                    <span className="text-xs">Online</span>
+                  </div>
                 </div>
+                <UserProfile user={user} />
               </div>
-              <p className="text-xs sm:text-sm text-gray-400 mt-1 flex items-center gap-2">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500" />
-                Online • Ready to chat
-              </p>
             </div>
 
             {/* Messages container with responsive padding */}
-            <div className="flex-1 overflow-y-auto px-2 sm:px-4 md:px-6 py-3 sm:py-4 space-y-4 sm:space-y-6">
+            <div className="relative z-0 flex-1 overflow-y-auto px-2 sm:px-4 md:px-6 py-3 sm:py-4 space-y-4 sm:space-y-6">
               {messages.map((message, index) => (
                 <div
                   key={message.id}
@@ -509,11 +541,9 @@ export default function Dashboard() {
                   >
                     {message.image && (
                       <div className="mb-3 rounded-lg overflow-hidden shadow-md max-w-[300px]">
-                        <Image 
+                        <img 
                           src={message.image.url} 
                           alt="Uploaded content"
-                          width={300}
-                          height={300}
                           className="w-full h-auto hover:opacity-95 transition-opacity object-contain"
                         />
                       </div>
@@ -616,11 +646,9 @@ export default function Dashboard() {
               
               {stagedImage && (
                 <div className="mb-3 relative group">
-                  <Image 
+                  <img 
                     src={stagedImage.url} 
                     alt="Staged upload" 
-                    width={128}
-                    height={128}
                     className="w-32 h-32 object-cover rounded-lg border border-gray-700 shadow-md transition-transform hover:scale-105"
                   />
                   <button
