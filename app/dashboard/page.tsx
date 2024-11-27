@@ -102,7 +102,7 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Update the useEffect to handle both messages and loading state changessss
+  // Update the useEffect to handle both messages and loading state changes
   useEffect(() => {
     // Small delay to ensure content is rendered
     const timeoutId = setTimeout(() => {
